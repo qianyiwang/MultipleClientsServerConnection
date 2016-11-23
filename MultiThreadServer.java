@@ -10,23 +10,24 @@ public class MultiThreadServer {
 
     public static final int SERVER_PORT = 5799;
 
-    public static void main(String args[]) 
+
+    public static void main(String args[])
     {
 	ServerSocket myServerice = null;
 	Socket serviceSocket = null;
 
-	// Try to open a server socket 
+	// Try to open a server socket
 	try {
 	    myServerice = new ServerSocket(SERVER_PORT);
 	}
 	catch (IOException e) {
 	    System.out.println(e);
-	}   
+	}
 
 	// Create a socket object from the ServerSocket to listen and accept connections.
 	while (true)
 	{
-	    try 
+	    try
 	    {
 		// Received a connection
 		serviceSocket = myServerice.accept();
@@ -34,9 +35,11 @@ public class MultiThreadServer {
 
 		// Create and start the client handler thread
 		ChildThread cThread = new ChildThread(serviceSocket);
+    cThread.storeIp(""+serviceSocket.getInetAddress());
+
 		cThread.start();
-	    }   
-	    catch (IOException e) 
+	    }
+	    catch (IOException e)
 	    {
 		System.out.println(e);
 	    }
