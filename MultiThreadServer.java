@@ -8,7 +8,7 @@ import java.util.*;
 
 public class MultiThreadServer {
 
-    public static final int SERVER_PORT = 5432;
+    public static final int SERVER_PORT = 5799;
 
     public static void main(String args[]) 
     {

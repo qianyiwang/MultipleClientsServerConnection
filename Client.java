@@ -7,7 +7,7 @@ import java.net.*;
 
 public class Client 
 {
-    public static final int SERVER_PORT = 5432;
+    public static final int SERVER_PORT = 5799;
 
     public static void main(String[] args) 
     {
@@ -54,7 +54,7 @@ public class Client
 		//handle the user input
 		while ((userInput = stdInput.readLine())!= null)
 		{
-		    os.println(userInput);
+		    os.println(userInput); //send to server
 		}
 
 		// close the input and output stream
@@ -98,7 +98,7 @@ class SThread extends Thread
 
 	    while ((serverInput = is.readLine())!= null)
 	    {
-		System.out.println("s:" + serverInput);
+		System.out.println("s:" + serverInput); //message from server
 	    }
 
 	    is.close();
