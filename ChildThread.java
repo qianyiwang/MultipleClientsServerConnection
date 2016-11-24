@@ -26,10 +26,11 @@ public class ChildThread extends Thread
 	final String QUIT = "QUIT";
 	final String WHO = "WHO";
 	final String SEND = "SEND";
+	final String SHUTDOWN = "SHUTDOWN";
 	static LinkedList<String> loginList = new LinkedList();
 	static LinkedList<String> ipList = new LinkedList();
 	// static HashMap<String, String> map = new HashMap();
-	String currentIp, currentName, receiver;
+	String currentIp="", currentName="", receiver="";
 	int msgIdx = 0;
 	boolean msgStoreFlag = false, loginStatus = false, sendFlag = false;
 
@@ -68,11 +69,12 @@ public class ChildThread extends Thread
 			synchronized(handlers)
 			{
 				ChildThread handler = (ChildThread)handlers.elementAt(i);
-				if (handler != this)
-				{
-					handler.out.println(line); //broadcast to other clients
-					handler.out.flush();
-				}
+				// if (handler != this)
+				// {
+				//
+				// }
+				handler.out.println(line); //broadcast to other clients
+				handler.out.flush();
 			}
 		}
 	}
@@ -155,6 +157,7 @@ public class ChildThread extends Thread
 			ipList.remove(idx);
 			currentName = "";
 			loginStatus = false;
+			response(handlers, "200 OK");
 		}
 	}
 
@@ -167,10 +170,57 @@ public class ChildThread extends Thread
 		}
 	}
 
+	private void triggerSend(String line){
+		if(line.contains(" ")){
+			String[] parts = line.split(" ");
+			String name = parts[1];
+			if(!loginList.contains(name)){
+				response(handlers, "420 either the user does not exist or is not logged in.");
+			}
+			else if(name.equals(currentName)){
+				response(handlers, "420 cannot send to yourself.");
+			}
+			else{
+				receiver = name;
+				response(handlers, "200 OK");
+				sendFlag = true;
+			}
+		}
+		else{
+			response(handlers, "410 Wrong send format.");
+		}
+	}
+
 	private void send(String msg, ChildThread handler){
 		handler.out.println("200 OK you have a new message from "+currentName);
 		handler.out.println(currentName+": "+msg);
 		handler.out.flush();
+	}
+
+	private void shutdown(){
+		if(!currentName.equals("root")){
+			response(handlers, "402 User not allowed to execute this command.");
+		}
+		else{
+			broadcast(handlers, "210 the server is about to shutdown ……");
+			try
+	    {
+				in.close();
+				out.close();
+				socket.close();
+	    }
+	    catch(IOException ioe)
+	    {
+	    }
+	    finally
+	    {
+				synchronized(handlers)
+				{
+			    handlers.removeElement(this);
+				}
+	    }
+			System.exit(1);
+		}
 	}
 
   public void run()
@@ -209,6 +259,9 @@ public class ChildThread extends Thread
 					case "SHOW":
 						response(handlers, currentName+"---"+currentIp);
 						break;
+					case SHUTDOWN:
+						shutdown();
+						break;
 					default:
 						if(msgStoreFlag){
 							storemsg(line, handlers);
@@ -218,6 +271,7 @@ public class ChildThread extends Thread
 							ChildThread handler = handlers.elementAt(idx);
 							send(line, handler);
 							sendFlag = false;
+							response(handlers, "200 OK");
 						}
 						else if(line.contains(LOGIN)){
 							login(line, handlers);
@@ -226,24 +280,7 @@ public class ChildThread extends Thread
 							logout(line, handlers);
 						}
 						else if(line.contains(SEND)){
-							if(line.contains(" ")){
-								String[] parts = line.split(" ");
-								String name = parts[1];
-								if(!loginList.contains(name)){
-									response(handlers, "420 either the user does not exist or is not logged in.");
-								}
-								else if(name.equals(currentName)){
-									response(handlers, "420 cannot send to yourself.");
-								}
-								else{
-									receiver = name;
-									response(handlers, "200 OK");
-									sendFlag = true;
-								}
-							}
-							else{
-								response(handlers, "410 Wrong send format.");
-							}
+							triggerSend(line);
 						}
 						else{
 							response(handlers, "404 no such a command found");
