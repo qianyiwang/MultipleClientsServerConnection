@@ -26,12 +26,12 @@ public class ChildThread extends Thread
 	final String QUIT = "QUIT";
 	final String WHO = "WHO";
 	final String SEND = "SEND";
-	// static LinkedList<String> loginList = new LinkedList();
-	// static LinkedList<String> ipList = new LinkedList();
-	static HashMap<String, String> map = new HashMap();
-	String currentIp;
+	static LinkedList<String> loginList = new LinkedList();
+	static LinkedList<String> ipList = new LinkedList();
+	// static HashMap<String, String> map = new HashMap();
+	String currentIp, currentName, receiver;
 	int msgIdx = 0;
-	boolean msgStoreFlag = false, loginStatus = false;
+	boolean msgStoreFlag = false, loginStatus = false, sendFlag = false;
 
   public ChildThread(Socket socket) throws IOException
   {
@@ -106,18 +106,6 @@ public class ChildThread extends Thread
 		}
 	}
 
-	private boolean isLoggedin(String s){
-		Set set = map.entrySet();
-		Iterator i = set.iterator();
-		while(i.hasNext()) {
-			 Map.Entry me = (Map.Entry)i.next();
-			 if(me.getKey().equals(s)){
-				 return true;
-			 }
-		}
-		return false;
-	}
-
 	private void login(String s, Vector<ChildThread> handlers){
 		if(s.contains(" ")){
 			String[] parts = s.split(" ");
@@ -127,24 +115,22 @@ public class ChildThread extends Thread
 				String userInfo = parts[1]+","+parts[2];
 				for (int i=0; i<userList.size();i++){
 					if(userInfo.equals(userList.get(i))){
-						loginStatus = true;
-						String name = parts[1];
-						// if(loginList.contains(name)){
-						// 	response(handlers, name+", you have already login in");
-						// 	break;
-						// }
-						// else{
-						// 	response(handlers, "Welcome "+name);
-						// 	loginList.offer(name);
-						//
-						// 	break;
-						// }
-						if(isLoggedin(name)){
-							response(handlers, name+", you have already loggedin");
-						}else{
-							map.put(name, currentIp);
-							response(handlers, "Welcome "+name);
+						currentName = parts[1];
+						if(loginList.contains(currentName)){
+							response(handlers, currentName+", you have already login in");
 						}
+						else{
+							response(handlers, "Welcome "+currentName);
+							loginList.offer(currentName);
+							ipList.offer(currentIp);
+							loginStatus = true;
+						}
+						// if(isLoggedin(name)){
+						// 	response(handlers, name+", you have already loggedin");
+						// }else{
+						// 	map.put(name, currentIp);
+						// 	response(handlers, "Welcome "+name);
+						// }
 						break;
 					}
 					if(i==userList.size()-1){
@@ -158,13 +144,33 @@ public class ChildThread extends Thread
 		}
 	}
 
-	private void who(Vector<ChildThread> handlers){
-		Set set = map.entrySet();
-		Iterator i = set.iterator();
-		while(i.hasNext()) {
-			 Map.Entry me = (Map.Entry)i.next();
-			 response(handlers,"User name: "+me.getKey()+"---"+me.getValue());
+	private void logout(String s, Vector<ChildThread> handlers){
+		if(!loginStatus){
+			response(handlers, "410 You are not loggedin yet.");
 		}
+		else{
+			loginStatus = false;
+			int idx = loginList.indexOf(currentName);
+			loginList.remove(idx);
+			ipList.remove(idx);
+			currentName = "";
+			loginStatus = false;
+		}
+	}
+
+	private void who(Vector<ChildThread> handlers){
+		response(handlers,"The list of the active users:");
+		for(int i=0; i<loginList.size(); i++){
+			String name = loginList.get(i);
+			String ip = ipList.get(i);
+			response(handlers,name+"---"+ip);
+		}
+	}
+
+	private void send(String msg, ChildThread handler){
+		handler.out.println("200 OK you have a new message from "+currentName);
+		handler.out.println(currentName+": "+msg);
+		handler.out.flush();
 	}
 
   public void run()
@@ -197,21 +203,47 @@ public class ChildThread extends Thread
 						msgStoreFlag = true;
 						response(handlers, "200 OK");
 						break;
-					case LOGOUT:
-						loginStatus = false;
-
-						break;
 					case WHO:
 						who(handlers);
 						break;
-
+					case "SHOW":
+						response(handlers, currentName+"---"+currentIp);
+						break;
 					default:
 						if(msgStoreFlag){
 							storemsg(line, handlers);
-
+						}
+						else if(sendFlag){
+							int idx = loginList.indexOf(receiver);
+							ChildThread handler = handlers.elementAt(idx);
+							send(line, handler);
+							sendFlag = false;
 						}
 						else if(line.contains(LOGIN)){
 							login(line, handlers);
+						}
+						else if(line.contains(LOGOUT)){
+							logout(line, handlers);
+						}
+						else if(line.contains(SEND)){
+							if(line.contains(" ")){
+								String[] parts = line.split(" ");
+								String name = parts[1];
+								if(!loginList.contains(name)){
+									response(handlers, "420 either the user does not exist or is not logged in.");
+								}
+								else if(name.equals(currentName)){
+									response(handlers, "420 cannot send to yourself.");
+								}
+								else{
+									receiver = name;
+									response(handlers, "200 OK");
+									sendFlag = true;
+								}
+							}
+							else{
+								response(handlers, "410 Wrong send format.");
+							}
 						}
 						else{
 							response(handlers, "404 no such a command found");
