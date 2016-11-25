@@ -1,17 +1,17 @@
-/* 
+/*
  * Client.java
  */
 
 import java.io.*;
 import java.net.*;
 
-public class Client 
+public class Client
 {
     public static final int SERVER_PORT = 5799;
 
-    public static void main(String[] args) 
+    public static void main(String[] args)
     {
-	Socket clientSocket = null;  
+	Socket clientSocket = null;
 	PrintStream os = null;
 	String userInput = null;
 	BufferedReader stdInput = null;
@@ -25,17 +25,17 @@ public class Client
 
 	// Try to open a socket on SERVER_PORT
 	// Try to open input and output streams
-	try 
+	try
 	{
 	    clientSocket = new Socket(args[0], SERVER_PORT);
 	    os = new PrintStream(clientSocket.getOutputStream());
 	    stdInput = new BufferedReader(new InputStreamReader(System.in));
-	} 
-	catch (UnknownHostException e) 
+	}
+	catch (UnknownHostException e)
 	{
 	    System.err.println("Don't know about host: hostname");
-	} 
-	catch (IOException e) 
+	}
+	catch (IOException e)
 	{
 	    System.err.println("Couldn't get I/O for the connection to: hostname");
 	}
@@ -43,9 +43,9 @@ public class Client
 	// If everything has been initialized then we want to write some data
 	// to the socket we have opened a connection to on port 25
 
-	if (clientSocket != null && os != null) 
+	if (clientSocket != null && os != null)
 	{
-	    try 
+	    try
 	    {
 		//Start a child thread to handle the server's messages
 		SThread sThread = new SThread(clientSocket);
@@ -60,20 +60,20 @@ public class Client
 		// close the input and output stream
 		// close the socket
 		os.close();
-		clientSocket.close();   
+		clientSocket.close();
 		System.exit(0);
-	    } 
-	    catch (IOException e) 
+	    }
+	    catch (IOException e)
 	    {
 	    }
 	}
-    }           
+    }
 }
 
 /*
  * SThread Class, which handle the server's messages
  */
-class SThread extends Thread 
+class SThread extends Thread
 {
     Socket socket;
     BufferedReader is = null;
@@ -92,21 +92,26 @@ class SThread extends Thread
      */
     public void run()
     {
-	try 
+	try
 	{
 	    is = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 	    while ((serverInput = is.readLine())!= null)
 	    {
-		System.out.println("s:" + serverInput); //message from server
+        if(serverInput.equals("QUIT")){
+          break;
+        }
+        else{
+          System.out.println("s:" + serverInput); //message from server
+        }
 	    }
 
 	    is.close();
-	    socket.close();   
+	    socket.close();
 	    System.exit(0);
-	} 
-	catch (IOException e) 
+	}
+	catch (IOException e)
 	{
 	}
-    }           
+    }
 }

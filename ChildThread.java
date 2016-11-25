@@ -146,7 +146,7 @@ public class ChildThread extends Thread
 		}
 	}
 
-	private void logout(String s, Vector<ChildThread> handlers){
+	private void logout(Vector<ChildThread> handlers){
 		if(!loginStatus){
 			response(handlers, "410 You are not loggedin yet.");
 		}
@@ -223,6 +223,17 @@ public class ChildThread extends Thread
 		}
 	}
 
+	private void quit(Vector<ChildThread> handlers){
+		loginStatus = false;
+		int idx = loginList.indexOf(currentName);
+		loginList.remove(idx);
+		ipList.remove(idx);
+		currentName = "";
+		loginStatus = false;
+		response(handlers, "200 OK");
+		response(handlers, "QUIT");
+	}
+
   public void run()
   {
 		String line;
@@ -262,6 +273,12 @@ public class ChildThread extends Thread
 					case SHUTDOWN:
 						shutdown();
 						break;
+					case LOGOUT:
+						logout(handlers);
+						break;
+					case QUIT:
+						quit(handlers);
+						break;
 					default:
 						if(msgStoreFlag){
 							storemsg(line, handlers);
@@ -275,9 +292,6 @@ public class ChildThread extends Thread
 						}
 						else if(line.contains(LOGIN)){
 							login(line, handlers);
-						}
-						else if(line.contains(LOGOUT)){
-							logout(line, handlers);
 						}
 						else if(line.contains(SEND)){
 							triggerSend(line);
